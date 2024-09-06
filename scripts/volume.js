@@ -1,5 +1,6 @@
 var BandcampVolume = {
     _range:null, // Input range slider (object)
+    _volNumeric:null, // Numeric input (object)
     _audiotags:[], // Audio tags (object array)
     _volSpeaker:null, // Speaker button  (object)
     _lastVol:0.85, // Last saved volume (float)
@@ -12,7 +13,10 @@ var BandcampVolume = {
             this._audiotags[i].volume = newvol;
         }
 
-        // Set the spekaer icon to the new volume
+        // Update the numeric input
+        this._volNumeric.value = (newvol * 100).toFixed(0);
+
+        // Set the speaker icon to the new volume
         this._volSpeaker_set(newvol);
     },
     _setVolume:function(newvol)
@@ -25,7 +29,7 @@ var BandcampVolume = {
         // Set the slider to the new volume (For when Mute / Un-Mute button is pressed)
         this._range.value = newvol;
 
-        // Set the spekaer icon to the new volume
+        // Set the speaker icon to the new volume
         this._volSpeaker_set(newvol);
 
         // Put it in Chrome's local storage for global persistance if the save volume option is enabled
@@ -58,7 +62,7 @@ var BandcampVolume = {
             // Set the slider to the initial volume
             bcv._range.value = newvol;
 
-            // Set the spekaer icon to the initial volume
+            // Set the speaker icon to the initial volume
             bcv._volSpeaker_set(newvol);
 
             // If initial volume is above '0' set the 'mute' value to '0' and set the 'last volume' to the initial volume
@@ -180,6 +184,15 @@ var BandcampVolume = {
         bcv._range.step = 0.01;
         bcv._range.min = 0;
 
+        // Create numeric input to display the volume value
+        bcv._volNumeric = document.createElement("input");
+        bcv._volNumeric.type = "number";
+        bcv._volNumeric.className = "BandcampVolume_numericInput";
+        bcv._volNumeric.value = (bcv._range.value * 100).toFixed(0);
+        bcv._volNumeric.min = "0";
+        bcv._volNumeric.max = "100";
+        bcv._volNumeric.step = "1";
+
         // Listen for if the slider value is changed, set the audio volume and chrome storage value accordingly
         // (An 'input' event fires the moment the slider changes value, a 'change' event only fires when slider is un-clicked)
         // If we stored the value on 'input' event, this screws up the chrome.storage event listener, as you're trying to change the value while chrome is also trying to change the value
@@ -189,6 +202,19 @@ var BandcampVolume = {
 
         bcv._range.addEventListener("change", function(event) {
             bcv._setVolume(event.target.value);
+        });
+
+        // Listen for changes in the numeric input
+        bcv._volNumeric.addEventListener("input", function(event) {
+            var enteredValue = parseFloat(event.target.value, 10);
+            // Set the volume if the entered value is a number and between 0 - 100
+            if (!isNaN(enteredValue) && enteredValue >= 0 && enteredValue <= 100) {
+                var decimalValue = enteredValue / 100;
+                bcv._setVolume(decimalValue);
+            // If something is entered outside of 0 - 100, set the volume to the last acceptable input
+            } else if (!isNaN(enteredValue)) {
+                event.target.value = (bcv._range.value * 100).toFixed(0);
+            }
         });
 
         // Create speaker button and place in object variable
@@ -208,6 +234,8 @@ var BandcampVolume = {
         var volcontainer = document.createElement("div");
         volcontainer.appendChild(bcv._volSpeaker);
         volcontainer.appendChild(bcv._range);
+        // Append the volume numeric input next to the volume slider
+        volcontainer.appendChild(bcv._volNumeric);
 
         // If current page is an Album, Artist or Label page then set styles and insert slider accordingly
         if (page == "user") {
@@ -264,7 +292,3 @@ var BandcampVolume = {
 };
 
 BandcampVolume.load();
-
-
-
-
